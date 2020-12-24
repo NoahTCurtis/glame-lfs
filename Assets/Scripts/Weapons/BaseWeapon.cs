@@ -11,6 +11,11 @@ public class BaseWeapon : BaseUseItem
 	protected bool showsAmmoUI = true;
 
 	protected bool UsesClip { get => maxClip > 0; }
+	protected bool HasAmmo { get => ammo > 0 || clip > 0; }
+	protected bool HasAmmoLoaded { get {
+			if (UsesClip) return clip > 0;
+			else return ammo > 0;
+	}}
 
 	public override void AddFromPickup(BaseUseItemPickup pickup)
 	{
@@ -24,5 +29,14 @@ public class BaseWeapon : BaseUseItem
 
 		var bwp = pickup as BaseWeaponPickup;
 		ammo += bwp.ammo;
+	}
+
+	protected void SpendAmmo(int amount = 1)
+	{
+		if(UsesClip) {
+			clip -= amount;
+		} else {
+			ammo -= amount;
+		}
 	}
 }

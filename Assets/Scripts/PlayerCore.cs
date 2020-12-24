@@ -44,12 +44,12 @@ public class PlayerCore : MonoBehaviour
 			}
 		}
 
-		if(Input.mouseScrollDelta.y > 0)
+		if(Input.mouseScrollDelta.y < 0)
 		{
 			_weapInventory.SelectNextItem();
 		}
 
-		if (Input.mouseScrollDelta.y < 0)
+		if (Input.mouseScrollDelta.y > 0)
 		{
 			_weapInventory.SelectPrevItem();
 		}
