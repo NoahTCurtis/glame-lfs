@@ -29,6 +29,8 @@ public class BaseWeapon : BaseUseItem
 
 		var bwp = pickup as BaseWeaponPickup;
 		ammo += bwp.ammo;
+
+		TryRefreshUI();
 	}
 
 	protected void SpendAmmo(int amount = 1)
@@ -37,6 +39,33 @@ public class BaseWeapon : BaseUseItem
 			clip -= amount;
 		} else {
 			ammo -= amount;
+		}
+
+		TryRefreshUI();
+	}
+
+	private void TryRefreshUI()
+	{
+		if(IsHeldItem)
+		{
+			SetUI();
+		}
+	}
+
+	public override void SetUI()
+	{
+		if(UIController.Instance != null)
+		{
+			UIController.Instance.ShowAmmoPanel();
+			UIController.Instance.SetAmmoPanel(ItemName, ammo, clip);
+		}
+	}
+
+	public override void ClearUI()
+	{
+		if (UIController.Instance != null)
+		{
+			UIController.Instance.ShowAmmoPanel(showPanel : false);
 		}
 	}
 }

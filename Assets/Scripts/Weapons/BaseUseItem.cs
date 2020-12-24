@@ -4,10 +4,20 @@ using UnityEngine;
 
 public class BaseUseItem : MonoBehaviour
 {
-	public string ItemName = "baseWeap";
+	[Header("Base Use Item")]
+	public string ItemName = "baseItem";
 
-	public virtual void AddFromPickup(BaseUseItemPickup pickup)
+	private WeapInventory _inventory = null;
+	public void SetInventory(WeapInventory inventory)
 	{
-		
+		_inventory = inventory;
 	}
+
+	protected bool IsHeldItem { get {
+		return _inventory.IsHoldingItem && (_inventory.HeldItem == this);
+	}}
+
+	public virtual void AddFromPickup(BaseUseItemPickup pickup) { }
+	public virtual void SetUI() { }
+	public virtual void ClearUI() { }
 }

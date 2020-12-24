@@ -138,7 +138,7 @@ public class Game : MonoBehaviour
 		var defScaleField = type.GetField("m_defaultScale", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
 
 		//whatever scale you want when you click on play
-		float defaultScale = 1.5f;
+		float defaultScale = 1f;
 
 		var areaField = type.GetField("m_ZoomArea", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
 		var areaObj = areaField.GetValue(v);
