@@ -9,7 +9,7 @@ public class Toss : BaseWeapon
 
 	void Update()
 	{
-		if (Input.GetMouseButtonDown(2))
+		if (Input.GetMouseButtonDown(0))
 		{
 			if (Prefab != null)
 				obj = GameObject.Instantiate(Prefab);
