@@ -5,38 +5,8 @@ using UnityEngine;
 [RequireComponent(typeof(AudioSource))]
 public class GBE : BaseWeapon
 {
-	public class BeamData
-	{
-		public BeamData(Ray ray, float radius)
-		{
-			this.ray = ray;
-			this.radius = radius;
-		}
-
-		public void AddTarget(BreakableByGBE target)
-		{
-			targets.Add(target);
-		}
-
-		public void AddNewDebrisPiece(GameObject piece)
-		{
-			newDebrisPieces.Add(piece);
-		}
-		
-		public Ray ray;
-		public float radius;
-		public List<BreakableByGBE> targets = new List<BreakableByGBE>();
-		public List<GameObject> newDebrisPieces = new List<GameObject>();
-		public List<DissolveBeam> dissolveBeams = new List<DissolveBeam>();
-
-		public int targetsBrokenSoFar = 0;
-	}
-
 	[Header("Shot Pipeline")]
 	public bool UseAudio = true;
-	public bool UseShaderHoles = true;
-	public bool UseBreakables = true;
-	public bool UseRubblePhysics = true;
 	public bool UseBeamAnimation = true;
 	public bool UseChargeRequirement = true; //cheatcode
 
@@ -89,11 +59,6 @@ public class GBE : BaseWeapon
 	//GBE animation data
 	public float charge = 0.0f;
 
-	//current shot data
-	private BeamData _beam;
-	public bool ShotInProgress { get => _beam != null; }
-	public bool Charging { get => charge > 0.0f; }
-
 	void Awake()
 	{
 		_audioSource = GetComponent<AudioSource>();
@@ -130,7 +95,8 @@ public class GBE : BaseWeapon
 		GunShake01(openness01);
 
 		//shoot, if possible
-		if(Input.GetMouseButtonDown(0) && !ShotInProgress && (charge > 1 || !UseChargeRequirement))
+		bool shotInProgress = Game.Manager<BeamManager>().ShotInProgress;
+		if(Input.GetMouseButtonDown(0) && !shotInProgress && (charge > 1 || !UseChargeRequirement))
 		{
 			Shoot();
 		}
@@ -189,22 +155,15 @@ public class GBE : BaseWeapon
 			case 6: beamRadius = 16.0f; break;//X shot again
 		}
 
-		//create beam data
+		//create beam
 		Transform cam = Camera.main.transform;
 		Ray beamRay = new Ray(cam.position, cam.forward);
-		_beam = new BeamData(beamRay, beamRadius);
 
-		//shot pipeline
-		CollectBeamTargets(_beam);
-		
-		IEnumerator enablePhysicsOnDebris = EnablePhysicsOnDebris(_beam, EndShot());
-		IEnumerator breakBeamTargets = BreakBeamTargets(_beam, enablePhysicsOnDebris);
-
-		StartCoroutine(breakBeamTargets);
+		Game.Manager<BeamManager>().CreateBeam(cam.position, cam.forward, beamRadius);
 
 		//animation
-		if(UseBeamAnimation && _beam.targets.Count > 0)
-			StartCoroutine(AnimateBeam(_beam));
+		if (UseBeamAnimation)
+			StartCoroutine(AnimateBeam(beamRadius));
 
 		charge = 0;
 
@@ -212,55 +171,23 @@ public class GBE : BaseWeapon
 		if(UseAudio)
 			_audioSource.Play();
 	}
-
-	void CollectBeamTargets(BeamData beam)
-	{
-		Transform cam = Camera.main.transform;
-		var hits = Physics.SphereCastAll(cam.position, beam.radius, cam.forward);
-
-		System.Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
-
-		foreach (var hit in hits)
-		{
-			//remember it so they can all be broken later
-			BreakableByGBE breaker = hit.collider.GetComponent<BreakableByGBE>();
-			if (breaker != null)
-			{
-				beam.targets.Add(breaker);
-			}
-
-			//make the piece appear broken via shaders
-			var dissolveBeam = hit.collider.GetComponent<DissolveBeam>();
-			if (dissolveBeam != null && UseShaderHoles)
-			{
-				dissolveBeam.AddBeam(beam);
-				beam.dissolveBeams.Add(dissolveBeam);
-			}
-		}
-	}
-
-	private IEnumerator EndShot()
-	{
-		_beam = null;
-		yield return null;
-	}
 	
-	private IEnumerator AnimateBeam(BeamData beam, IEnumerator next = null)
+	private IEnumerator AnimateBeam(float beamRadius, IEnumerator next = null)
 	{
 		float startTime = Time.time;
 		float endTime = Time.time + 0.25f;
-		float startRadius = beam.radius;
+		float startRadius = beamRadius;
 
 		float length = 10.0f;
 		float t = 0;
 		while (t < 1)
 		{
 			float timeT = Mathf.InverseLerp(startTime, endTime, Time.time);
-			float breakT = 1;
-			if(beam != null)
-				breakT = (float)beam.targetsBrokenSoFar / (float)beam.targets.Count;
-			t = Mathf.Min(timeT, breakT);
-			//Debug.Log(t + " (" + beam?.targetsBrokenSoFar + "/" + beam?.targets.Count + ") [time" + timeT + " / break" + breakT + "]");
+			//float breakT = 1;
+			//if(beam != null)
+			//	breakT = (float)beam.targetsBrokenSoFar / (float)beam.targets.Count;
+			//t = Mathf.Min(timeT, breakT);
+			t = timeT;
 
 			float diameter = startRadius * 2.0f * (1.0f - t);
 			Beam.localPosition = new Vector3(length, 0, 0);
@@ -272,42 +199,6 @@ public class GBE : BaseWeapon
 		//reset for next time
 		Beam.transform.localScale = Vector3.zero;
 		Beam.transform.localPosition = Vector3.zero;
-
-		if (next != null) StartCoroutine(next);
-	}
-
-	IEnumerator BreakBeamTargets(BeamData beam, IEnumerator next = null)
-	{
-		int maxBreaksPerFrame = 5;
-		int brokenOnThisFrame = 0;
-		foreach(var breaker in beam.targets)
-		{
-			if(UseBreakables)
-				breaker.Break(beam);
-
-			brokenOnThisFrame += 1;
-			beam.targetsBrokenSoFar += 1;
-
-			if(brokenOnThisFrame >= maxBreaksPerFrame)
-			{
-				yield return null;
-				brokenOnThisFrame = 0;
-			}
-		}
-
-		if (next != null) StartCoroutine(next);
-	}
-
-	IEnumerator EnablePhysicsOnDebris(BeamData beam, IEnumerator next = null)
-	{
-		foreach(var debris in beam.newDebrisPieces)
-		{
-			Rigidbody rb = debris.GetComponent<Rigidbody>();
-			if (rb != null && UseRubblePhysics)
-				rb.isKinematic = false;
-		}
-
-		yield return null;
 
 		if (next != null) StartCoroutine(next);
 	}

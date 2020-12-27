@@ -10992,6 +10992,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Exterminator Ragdoll
       objectReference: {fileID: 0}
+    - target: {fileID: 7764136465219719055, guid: 68e5713b8f9b989429358658e6c26b26,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 68e5713b8f9b989429358658e6c26b26, type: 3}
 --- !u!1 &1587955472

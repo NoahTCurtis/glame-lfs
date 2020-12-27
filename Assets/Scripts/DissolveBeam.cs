@@ -60,7 +60,7 @@ public class DissolveBeam : MonoBehaviour
 	}
 	*/
 
-	public virtual void AddBeam(GBE.BeamData beam)
+	public virtual void AddBeam(BeamData beam)
 	{
 		if (cylinders.Count >= 4) return;
 

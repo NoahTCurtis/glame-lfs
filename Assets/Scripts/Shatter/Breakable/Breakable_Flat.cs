@@ -83,7 +83,7 @@ namespace GK {
 			return mean + stddev * randStdNormal;
 		}
 
-		public override void Break(GBE.BeamData beam)
+		public override void CalculateBreak(BeamData beam)
 		{
 			bool randomizeRotation = true;
 			bool randomizeColor = Input.GetKey(KeyCode.LeftControl);

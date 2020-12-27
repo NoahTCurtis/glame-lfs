@@ -24,7 +24,7 @@ public class DissolveBeamParent : DissolveBeam
 		Debug.Assert(_renderers.Count == _dissolveBeams.Count);
 	}
 
-	public override void AddBeam(GBE.BeamData beamData)
+	public override void AddBeam(BeamData beamData)
 	{
 		if (enabled == false) return;
 
