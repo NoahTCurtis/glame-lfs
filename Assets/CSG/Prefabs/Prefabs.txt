@@ -1,1 +1,0 @@
-This folder is the default repository for prefab files. This text file is a placeholder for the empty folder.
