@@ -25,9 +25,9 @@ namespace Voxel
 			public ChunkRenderer renderer;
 		}
 
-		public static int ChunkCountX = 50;
-		public static int ChunkCountY = 3;
-		public static int ChunkCountZ = 50;
+		public static int ChunkCountX = 30;
+		public static int ChunkCountY = 2;
+		public static int ChunkCountZ = 30;
 
 		private ChunkData[,,] _data = new ChunkData[ChunkCountX, ChunkCountY, ChunkCountZ];
 

@@ -194,6 +194,12 @@ namespace Voxel
 
 			MeshFilter meshFilter = GetComponent<MeshFilter>();
 			meshFilter.mesh = mesh;
+
+			MeshCollider meshCollider = GetComponent<MeshCollider>();
+			if(meshCollider != null)
+			{
+				meshCollider.sharedMesh = mesh;
+			}
 			Profiler.EndSample();
 		}
 	}

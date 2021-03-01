@@ -38,13 +38,18 @@ namespace Voxel
 						float y = _yOffset + localY;
 						float z = _zOffset + localZ;
 
-						float minHeight = 16f;
-						float maxHeight = 48f;
+						float minHeight = 1f;
+						float maxHeight = 16f;
 						float xzScale = Mathf.PI * 25f;
 						float xzNoise = Mathf.PerlinNoise(x/xzScale, z/xzScale);
 						float terrainHeight = Mathf.Lerp(minHeight, maxHeight, xzNoise);
 
-						bool solid = y < terrainHeight;
+						float maxTowerHeight = 32f;
+						xzScale = Mathf.PI * 10f;
+						xzNoise = Mathf.PerlinNoise(x/xzScale + 999f, z/xzScale + 999f);
+						float towerHeight = (xzNoise > 0.9f) ? maxTowerHeight : 0;
+
+						bool solid = y < Mathf.Max(terrainHeight, towerHeight);
 
 						if(solid)
 						{
