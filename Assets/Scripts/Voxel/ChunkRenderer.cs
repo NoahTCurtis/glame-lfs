@@ -15,6 +15,7 @@ namespace Voxel
 
 		private MultiChunk _mc;
 		private Chunk _chunk;
+		private Mesh _mesh;
 
 		Vector3[] vertices;
 		Vector3[] normals;
@@ -38,12 +39,14 @@ namespace Voxel
 		Vector2 uvC = new Vector2(1,1);
 		Vector2 uvD = new Vector2(1,0);
 
-		public void CreateMesh(MultiChunk mc, Chunk chunk)
+		void Awake()
+		{
+			_chunk = GetComponent<Chunk>();
+		}
+
+		public void CreateMesh()
 		{
 			Profiler.BeginSample("ChunkRenderer.CreateMesh");
-
-			_mc = mc;
-			_chunk = chunk;
 
 			vertIndex = 0;
 			triIndex = 0;
@@ -179,28 +182,34 @@ namespace Voxel
 		void SubmitMesh()
 		{
 			Profiler.BeginSample("CreateMesh.SubmitMesh()");
-			Mesh mesh = new Mesh();
-			mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+			_mesh = new Mesh();
+			_mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
 
 			Array.Resize(ref vertices, vertIndex);
 			Array.Resize(ref normals, vertIndex);
 			Array.Resize(ref uvs, vertIndex);
 			Array.Resize(ref tris, triIndex);
 
-			mesh.vertices = vertices;
-			mesh.normals = normals;
-			mesh.uv = uvs;
-			mesh.triangles = tris;
+			_mesh.vertices = vertices;
+			_mesh.normals = normals;
+			_mesh.uv = uvs;
+			_mesh.triangles = tris;
 
 			MeshFilter meshFilter = GetComponent<MeshFilter>();
-			meshFilter.mesh = mesh;
-
-			MeshCollider meshCollider = GetComponent<MeshCollider>();
-			if(meshCollider != null)
-			{
-				meshCollider.sharedMesh = mesh;
-			}
+			meshFilter.mesh = _mesh;
 			Profiler.EndSample();
+		}
+
+		public void EnablePhysics()
+		{
+			if(_mesh != null)
+			{
+				MeshCollider meshCollider = GetComponent<MeshCollider>();
+				if(meshCollider != null)
+				{
+					meshCollider.sharedMesh = _mesh;
+				}
+			}
 		}
 	}
 }

@@ -25,13 +25,14 @@ namespace Voxel
 			public ChunkRenderer renderer;
 		}
 
-		public static int ChunkCountX = 30;
-		public static int ChunkCountY = 2;
-		public static int ChunkCountZ = 30;
+		public static int ChunkCountX = 4;
+		public static int ChunkCountY = 4;
+		public static int ChunkCountZ = 4;
 
 		private ChunkData[,,] _data = new ChunkData[ChunkCountX, ChunkCountY, ChunkCountZ];
 
 		private Queue<ChunkData> _generationQueue = new Queue<ChunkData>();
+		private Queue<ChunkData> _physicsQueue = new Queue<ChunkData>();
 
 		void Start()
 		{
@@ -43,11 +44,13 @@ namespace Voxel
 					{
 						var data = new ChunkData(x, y, z);
 						_data[x,y,z] = data;
-						data.chunk = new Chunk();
 
 						var newChunkObj = GameObject.Instantiate(ChunkRendererPrefab, transform.position, transform.rotation, transform);
 						Vector3 newChunkPosition = new Vector3(x * Chunk.ChunkSizeX, y * Chunk.ChunkSizeY, z * Chunk.ChunkSizeZ);
 						newChunkObj.transform.localPosition = newChunkPosition;
+
+						data.chunk = newChunkObj.GetComponent<Chunk>();
+						Debug.Assert(data.chunk != null);
 
 						data.renderer = newChunkObj.GetComponent<ChunkRenderer>();
 						Debug.Assert(data.renderer != null);
@@ -56,21 +59,45 @@ namespace Voxel
 					}
 				}
 			}
+
+			BoxCollider box = GetComponent<BoxCollider>();
+			if(box != null)
+			{
+				Vector3 size = new Vector3(ChunkCountX * Chunk.ChunkSizeX, ChunkCountY * Chunk.ChunkSizeY, ChunkCountZ * Chunk.ChunkSizeZ);
+				box.size = size;
+				box.center = size / 2.0f;
+			}
 		}
 
 		void Update()
 		{
 			int generationsPerFrame = 10;
-			while(generationsPerFrame-- > 0 && _generationQueue.Count > 0)
+			int physicsEnabledPerFrame = 100;
+			if(_generationQueue.Count > 0)
 			{
-				Profiler.BeginSample("Creating Single Chunk...");
-				
-				var data = _generationQueue.Peek();
-				data.chunk.Generate(this, data.X,data.Y,data.Z);
-				data.renderer.CreateMesh(this, data.chunk);
-				_generationQueue.Dequeue();
+				while(generationsPerFrame-- > 0 && _generationQueue.Count > 0)
+				{
+					Profiler.BeginSample("Creating Single Chunk...");
 
-				Profiler.EndSample();
+					var data = _generationQueue.Peek();
+					_physicsQueue.Enqueue(data);
+					_generationQueue.Dequeue();
+
+					data.chunk.Generate(this, data.X,data.Y,data.Z);
+					data.renderer.CreateMesh();
+
+					Profiler.EndSample();
+				}
+			}
+			else if(_physicsQueue.Count > 0)
+			{
+				while(physicsEnabledPerFrame-- > 0 && _physicsQueue.Count > 0)
+				{
+					var data = _physicsQueue.Peek();
+					_physicsQueue.Dequeue();
+
+					data.renderer.EnablePhysics();
+				}
 			}
 		}
 	

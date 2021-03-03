@@ -5,7 +5,7 @@ using UnityEngine.Profiling;
 
 namespace Voxel
 {
-	public class Chunk
+	public class Chunk : MonoBehaviour
 	{
 		public static int ChunkSizeX = 16;
 		public static int ChunkSizeY = 16;
@@ -18,6 +18,10 @@ namespace Voxel
 		private MultiChunk _multiChunk;
 
 		private Material[,,] _materials = new Material[ChunkSizeX, ChunkSizeY, ChunkSizeZ];
+
+		private Vector3[] LineCenters = { new Vector3(128,128,128) };
+		private Vector3[] LineVectors = { new Vector3(1.6f,1,1).normalized };
+		private float[] LineThicks = { 17f };
 
 		public void Generate(MultiChunk multiChunk, int xOffset, int yOffset, int zOffset)
 		{
@@ -34,23 +38,40 @@ namespace Voxel
 				{
 					for(int localZ = 0; localZ < ChunkSizeZ; localZ++)
 					{
+						//actual block position
 						float x = _xOffset + localX;
 						float y = _yOffset + localY;
 						float z = _zOffset + localZ;
 
-						float minHeight = 1f;
-						float maxHeight = 16f;
-						float xzScale = Mathf.PI * 25f;
-						float xzNoise = Mathf.PerlinNoise(x/xzScale, z/xzScale);
-						float terrainHeight = Mathf.Lerp(minHeight, maxHeight, xzNoise);
+						//rules for generation
+						/*
+						float xScale = Mathf.PI * 1f;
+						float xNoise = Mathf.PerlinNoise(y/xScale, z/xScale);
+						bool xLine = xNoise > 0.9f;
 
-						float maxTowerHeight = 32f;
-						xzScale = Mathf.PI * 10f;
-						xzNoise = Mathf.PerlinNoise(x/xzScale + 999f, z/xzScale + 999f);
-						float towerHeight = (xzNoise > 0.9f) ? maxTowerHeight : 0;
+						float yScale = Mathf.PI * 5f;
+						float yNoise = Mathf.PerlinNoise(x/yScale, z/yScale);
+						bool yLine = yNoise > 0.9f;
 
-						bool solid = y < Mathf.Max(terrainHeight, towerHeight);
+						float zScale = Mathf.PI * 0.5f;
+						float zNoise = Mathf.PerlinNoise(x/zScale, y/zScale);
+						bool zLine = zNoise > 0.9f;
 
+						Vector3 point = new Vector3(x, y + Mathf.Sin((x+z)/30f)*5f, z);
+						bool line = false;
+						for(int i = 0; i < LineCenters.Length; i++)
+						{
+							float distSq = Vector3.Cross(LineCenters[i]-point, LineVectors[i]).sqrMagnitude;
+							if(distSq < LineThicks[i] * LineThicks[i])
+							{
+								line = true;
+								break;
+							}
+						}
+
+						bool solid = xLine || yLine || zLine || line;
+
+						//Set material
 						if(solid)
 						{
 							_materials[localX, localY, localZ] = Material.Concrete;
@@ -59,11 +80,42 @@ namespace Voxel
 						{
 							_materials[localX, localY, localZ] = Material.Air;
 						}
+						*/
+						_materials[localX, localY, localZ] = Material.Concrete;
 					}
 				}
 			}
 
 			Profiler.EndSample();
+		}
+
+		public void BeamCut(BeamData beam)
+		{
+			Debug.Log($"Radius {beam.radius}");
+			float radius = beam.radius;
+			float radiusSq = radius * radius;
+
+			for(int localX = 0; localX < ChunkSizeX; localX++)
+			{
+				for(int localY = 0; localY < ChunkSizeY; localY++)
+				{
+					for(int localZ = 0; localZ < ChunkSizeZ; localZ++)
+					{
+						//actual block position
+						float x = _xOffset + localX;
+						float y = _yOffset + localY;
+						float z = _zOffset + localZ;
+						Vector3 point = new Vector3(x, y, z);
+
+						float distSq = Vector3.Cross(beam.ray.origin - point, beam.ray.direction).sqrMagnitude;
+
+						if(distSq < radiusSq)
+						{
+							_materials[localX, localY, localZ] = Material.Air;
+						}
+					}
+				}
+			}
 		}
 
 		public Material GetMaterialAtLocal(int x, int y, int z)
@@ -78,7 +130,12 @@ namespace Voxel
 			}
 		}
 
-		public Material GetMaterialAtLocalOrNeighbor(int x, int y, int z)
+		private bool IsValidIndex(int x, int y, int z)
+		{
+			return !(x < 0 || y < 0 || z < 0 || x >= ChunkSizeX || y >= ChunkSizeY || z >= ChunkSizeZ);
+		}
+
+		/*public Material GetMaterialAtLocalOrNeighbor(int x, int y, int z)
 		{
 			//x = x % Chunk.ChunkSizeX;
 			//y = y % Chunk.ChunkSizeY;
@@ -94,10 +151,6 @@ namespace Voxel
 			z += _zOffset;
 			return _multiChunk.GetMaterialAtGlobal(x, y, z);
 		}
-
-		private bool IsValidIndex(int x, int y, int z)
-		{
-			return !(x < 0 || y < 0 || z < 0 || x >= ChunkSizeX || y >= ChunkSizeY || z >= ChunkSizeZ);
-		}
+		*/
 	}
 }
