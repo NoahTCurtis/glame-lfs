@@ -25,9 +25,9 @@ namespace Voxel
 			public ChunkRenderer renderer;
 		}
 
-		public static int ChunkCountX = 4;
-		public static int ChunkCountY = 4;
-		public static int ChunkCountZ = 4;
+		public static int ChunkCountX = 10;
+		public static int ChunkCountY = 10;
+		public static int ChunkCountZ = 10;
 
 		private ChunkData[,,] _data = new ChunkData[ChunkCountX, ChunkCountY, ChunkCountZ];
 
@@ -36,6 +36,21 @@ namespace Voxel
 
 		void Start()
 		{
+			//if(transform.childCount == 0)
+			//	Generate(false);
+		}
+
+		void Update()
+		{
+			GenerationTick();
+		}
+
+		private void Allocate()
+		{
+			_data = new ChunkData[ChunkCountX, ChunkCountY, ChunkCountZ];
+			_generationQueue = new Queue<ChunkData>();
+			_physicsQueue = new Queue<ChunkData>();
+
 			for(int x = 0; x < ChunkCountX; x++)
 			{
 				for(int y = 0; y < ChunkCountY; y++)
@@ -54,8 +69,35 @@ namespace Voxel
 
 						data.renderer = newChunkObj.GetComponent<ChunkRenderer>();
 						Debug.Assert(data.renderer != null);
+					}
+				}
+			}
+		}
 
-						_generationQueue.Enqueue(data);
+		public void HardReset()
+		{
+			for (int i = this.transform.childCount; i > 0; --i)
+			{
+				DestroyImmediate(this.transform.GetChild(0).gameObject);
+			}
+
+			_data = new ChunkData[ChunkCountX, ChunkCountY, ChunkCountZ];
+			_generationQueue = new Queue<ChunkData>();
+			_physicsQueue = new Queue<ChunkData>();
+		}
+
+		public void Generate(bool immediate)
+		{
+			HardReset();
+			Allocate();
+
+			for(int x = 0; x < ChunkCountX; x++)
+			{
+				for(int y = 0; y < ChunkCountY; y++)
+				{
+					for(int z = 0; z < ChunkCountZ; z++)
+					{
+						_generationQueue.Enqueue(_data[x,y,z]);
 					}
 				}
 			}
@@ -67,9 +109,15 @@ namespace Voxel
 				box.size = size;
 				box.center = size / 2.0f;
 			}
+
+			if(immediate)
+			{
+				while(GenerationTick()) {}
+			}
 		}
 
-		void Update()
+		//returns true if there is work being done, false if the work is complete
+		public bool GenerationTick()
 		{
 			int generationsPerFrame = 10;
 			int physicsEnabledPerFrame = 100;
@@ -88,6 +136,7 @@ namespace Voxel
 
 					Profiler.EndSample();
 				}
+				return true;
 			}
 			else if(_physicsQueue.Count > 0)
 			{
@@ -98,10 +147,13 @@ namespace Voxel
 
 					data.renderer.EnablePhysics();
 				}
+				return true;
 			}
+			return false;
 		}
 	
 		//BROKEN!
+		/*
 		public Material GetMaterialAtGlobal(int x, int y, int z)
 		{
 			//This modulo and divsion aren't working as intended
@@ -123,5 +175,6 @@ namespace Voxel
 			Chunk chunk = _data[xChunkIndex, yChunkIndex, zChunkIndex].chunk;
 			return chunk.GetMaterialAtLocal(xVoxelIndex, yVoxelIndex, zVoxelIndex);
 		}
+		*/
 	}
 }

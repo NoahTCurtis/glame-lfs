@@ -48,6 +48,8 @@ namespace Voxel
 		{
 			Profiler.BeginSample("ChunkRenderer.CreateMesh");
 
+			_chunk = GetComponent<Chunk>();
+
 			vertIndex = 0;
 			triIndex = 0;
 

@@ -11,17 +11,27 @@ namespace Voxel
 		public static int ChunkSizeY = 16;
 		public static int ChunkSizeZ = 16;
 
-		private int _xOffset;
-		private int _yOffset;
-		private int _zOffset;
+		[SerializeField] private int _xOffset = -1;
+		[SerializeField] private int _yOffset = -1;
+		[SerializeField] private int _zOffset = -1;
 
 		private MultiChunk _multiChunk;
 
-		private Material[,,] _materials = new Material[ChunkSizeX, ChunkSizeY, ChunkSizeZ];
+		[SerializeField] public Material[] _materials = new Material[ChunkSizeX * ChunkSizeY * ChunkSizeZ];
 
-		private Vector3[] LineCenters = { new Vector3(128,128,128) };
-		private Vector3[] LineVectors = { new Vector3(1.6f,1,1).normalized };
-		private float[] LineThicks = { 17f };
+		private Vector3[] LineCenters = { new Vector3(128,128,128), new Vector3(128,200,80) };
+		private Vector3[] LineVectors = { new Vector3(1.6f,1,1).normalized, new Vector3(0,7,1).normalized };
+		private float[] LineThicks = { 17f, 9f };
+
+		private void SetMaterial(int x, int y, int z, Material material)
+		{
+			_materials[x * ChunkSizeY * ChunkSizeZ + y * ChunkSizeZ + z] = material;
+		}
+
+		private Material GetMaterial(int x, int y, int z)
+		{
+			return _materials[x * ChunkSizeY * ChunkSizeZ + y * ChunkSizeZ + z];
+		}
 
 		public void Generate(MultiChunk multiChunk, int xOffset, int yOffset, int zOffset)
 		{
@@ -51,37 +61,37 @@ namespace Voxel
 
 						float yScale = Mathf.PI * 5f;
 						float yNoise = Mathf.PerlinNoise(x/yScale, z/yScale);
-						bool yLine = yNoise > 0.9f;
+						bool yLine = yNoise > 0.8f;
 
 						float zScale = Mathf.PI * 0.5f;
 						float zNoise = Mathf.PerlinNoise(x/zScale, y/zScale);
 						bool zLine = zNoise > 0.9f;
 
-						Vector3 point = new Vector3(x, y + Mathf.Sin((x+z)/30f)*5f, z);
-						bool line = false;
+						Vector3 point = new Vector3(x, y + Mathf.Sin((x+z)/30f)*10f, z);
+						bool isTubeExterior = false;
+						bool isTubeInterior = false;
 						for(int i = 0; i < LineCenters.Length; i++)
 						{
 							float distSq = Vector3.Cross(LineCenters[i]-point, LineVectors[i]).sqrMagnitude;
-							if(distSq < LineThicks[i] * LineThicks[i])
-							{
-								line = true;
-								break;
-							}
+							float outer = LineThicks[i] * LineThicks[i];
+							float inner = (LineThicks[i] * 0.8f) * (LineThicks[i] * 0.8f);
+							isTubeExterior |= distSq < outer;
+							isTubeInterior |= distSq < inner;
 						}
 
-						bool solid = xLine || yLine || zLine || line;
+						bool solid = (xLine || yLine || zLine || isTubeExterior) && !isTubeInterior;
 
 						//Set material
 						if(solid)
 						{
-							_materials[localX, localY, localZ] = Material.Concrete;
+							SetMaterial(localX, localY, localZ, Material.Concrete);
 						}
 						else
 						{
-							_materials[localX, localY, localZ] = Material.Air;
+							SetMaterial(localX, localY, localZ, Material.Air);
 						}
 						*/
-						_materials[localX, localY, localZ] = Material.Concrete;
+						SetMaterial(localX, localY, localZ, Material.Concrete);
 					}
 				}
 			}
@@ -91,8 +101,9 @@ namespace Voxel
 
 		public void BeamCut(BeamData beam)
 		{
-			Debug.Log($"Radius {beam.radius}");
-			float radius = beam.radius;
+			Debug.Assert(_xOffset != -1);
+			
+			float radius = beam.radius + 0.2165f;
 			float radiusSq = radius * radius;
 
 			for(int localX = 0; localX < ChunkSizeX; localX++)
@@ -106,12 +117,16 @@ namespace Voxel
 						float y = _yOffset + localY;
 						float z = _zOffset + localZ;
 						Vector3 point = new Vector3(x, y, z);
+						Vector3 vecToBeamOrigin = beam.ray.origin - point;
 
-						float distSq = Vector3.Cross(beam.ray.origin - point, beam.ray.direction).sqrMagnitude;
-
-						if(distSq < radiusSq)
+						float dot = Vector3.Dot(beam.ray.direction, vecToBeamOrigin);
+						if(dot < 0)
 						{
-							_materials[localX, localY, localZ] = Material.Air;
+							float distSq = Vector3.Cross(vecToBeamOrigin, beam.ray.direction).sqrMagnitude;
+							if(distSq < radiusSq)
+							{
+								SetMaterial(localX, localY, localZ, Material.Air);
+							}
 						}
 					}
 				}
@@ -122,7 +137,7 @@ namespace Voxel
 		{
 			if(IsValidIndex(x,y,z))
 			{
-				return _materials[x,y,z];
+				return GetMaterial(x,y,z);
 			}
 			else
 			{
