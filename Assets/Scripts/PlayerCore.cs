@@ -9,6 +9,8 @@ public class PlayerCore : MonoBehaviour
 
 	private WeapInventory _weapInventory;
 
+	private GameObject _selectedObject = null;
+
 	void Start()
 	{
 		_weapInventory = GetComponent<WeapInventory>();
@@ -26,21 +28,15 @@ public class PlayerCore : MonoBehaviour
 		}
 
 		//Raycast to interact and pick up items
-		if(Input.GetKeyDown(KeyCode.E))
+		UpdateSelectedObject();
+		if(Input.GetKeyDown(KeyCode.E) && _selectedObject != null)
 		{
-			Ray ray = new Ray(HeadRoot.position, HeadRoot.forward);
-			RaycastHit info;
-			float maxDist = 10f;
-			int layerMask = LayerMask.NameToLayer("Player");
-			if(Physics.Raycast(ray, out info, maxDist, layerMask))
+			//do different things depending on what is selected
+			var pickup = _selectedObject.GetComponent<BaseUseItemPickup>();
+			if (pickup)
 			{
-				//do different things depending on what we hit
-				var pickup = info.transform.GetComponent<BaseUseItemPickup>();
-				if (pickup)
-				{
-					_weapInventory.AddItemFromPickup(pickup);
-					Destroy(pickup.gameObject);
-				}
+				_weapInventory.AddItemFromPickup(pickup);
+				Destroy(pickup.gameObject);
 			}
 		}
 
@@ -52,6 +48,31 @@ public class PlayerCore : MonoBehaviour
 		if (Input.mouseScrollDelta.y > 0)
 		{
 			_weapInventory.SelectPrevItem();
+		}
+	}
+
+	void UpdateSelectedObject()
+	{
+		float radius = 0.2f;
+		float maxDist = 2f;
+		Ray fatRay = new Ray(HeadRoot.position, HeadRoot.forward);
+		int layerMask = LayerMask.NameToLayer("Player");
+
+		var fatCastResults = Physics.SphereCastAll(fatRay, radius, maxDist, layerMask);
+		foreach (var fatHit in fatCastResults)
+		{
+			var pickup = fatHit.transform.GetComponent<BaseUseItemPickup>();
+			if (pickup != null)
+			{
+				RaycastHit thinHitInfo;
+				Ray thinRay = new Ray(HeadRoot.position, fatHit.transform.position - HeadRoot.position);
+				var thinHit = Physics.Raycast(thinRay, out thinHitInfo, maxDist, layerMask, QueryTriggerInteraction.UseGlobal);
+				if (thinHit && (fatHit.transform == thinHitInfo.transform))
+				{
+					_selectedObject = thinHitInfo.transform.gameObject;
+					break;
+				}
+			}
 		}
 	}
 

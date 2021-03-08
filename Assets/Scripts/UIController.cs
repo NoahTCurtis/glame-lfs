@@ -18,6 +18,8 @@ public class UIController : MonoBehaviour
 
 	public static UIController Instance;
 
+	private GameObject _selectedObject = null;
+
 	void Awake()
 	{
 		ShowAmmoPanel(false, false, false, false);
