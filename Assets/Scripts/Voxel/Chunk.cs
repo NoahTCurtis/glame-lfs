@@ -103,26 +103,32 @@ namespace Voxel
 		{
 			Debug.Assert(_xOffset != -1);
 			
+			//expand beam radius to ensure that blocks are broken
 			float radius = beam.radius + 0.2165f;
 			float radiusSq = radius * radius;
 
+			//preallocate things for the loop
+			Vector3 localPoint = new Vector3();
+			Ray localRay = LocalizeRay(beam.ray);
+			
 			for(int localX = 0; localX < ChunkSizeX; localX++)
 			{
 				for(int localY = 0; localY < ChunkSizeY; localY++)
 				{
 					for(int localZ = 0; localZ < ChunkSizeZ; localZ++)
 					{
-						//actual block position
-						float x = _xOffset + localX;
-						float y = _yOffset + localY;
-						float z = _zOffset + localZ;
-						Vector3 point = new Vector3(x, y, z);
-						Vector3 vecToBeamOrigin = beam.ray.origin - point;
+						//get actual block position
+						localPoint.x = _xOffset + localX;
+						localPoint.y = _yOffset + localY;
+						localPoint.z = _zOffset + localZ;
 
-						float dot = Vector3.Dot(beam.ray.direction, vecToBeamOrigin);
+						//check dot product to only break blocks at t>0
+						Vector3 vecToBeamOrigin = localRay.origin - localPoint;
+						float dot = Vector3.Dot(localRay.direction, vecToBeamOrigin);
 						if(dot < 0)
 						{
-							float distSq = Vector3.Cross(vecToBeamOrigin, beam.ray.direction).sqrMagnitude;
+							//check distance from beam
+							float distSq = Vector3.Cross(vecToBeamOrigin, localRay.direction).sqrMagnitude;
 							if(distSq < radiusSq)
 							{
 								SetMaterial(localX, localY, localZ, Material.Air);
@@ -131,6 +137,24 @@ namespace Voxel
 					}
 				}
 			}
+		}
+
+		private Ray LocalizeRay(Ray inputRay)
+		{
+			//get the world->local transformation manually since unity is silly
+			Vector3 translation = transform.parent.position;
+			Quaternion rotation = transform.parent.rotation;
+			Quaternion invRotation = Quaternion.Inverse(rotation);
+			float scale = transform.parent.localScale.x;
+
+			//get localspace ray
+			Vector3 localRayOrigin = inputRay.origin / scale;
+			localRayOrigin = invRotation * localRayOrigin;
+			localRayOrigin -= translation;
+
+			Vector3 localRayDirection = invRotation * inputRay.direction;
+
+			return new Ray(localRayOrigin, localRayDirection);
 		}
 
 		public Material GetMaterialAtLocal(int x, int y, int z)
